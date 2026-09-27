@@ -1,13 +1,17 @@
 {
+  "log": {
+    "loglevel": "warning"
+  },
   "inbounds": [
     {
+      "listen": "0.0.0.0",
       "port": 8080,
       "protocol": "vless",
       "settings": {
-        "users": [
+        "clients": [
           {
-            "id": "d2cb8181-233c-4d18-9972-8a1b04db4444",
-            "level": 0
+            "id": "fab68aa7-0f80-4223-9467-ff62a71daa1b",
+            "email": "user"
           }
         ],
         "decryption": "none"
@@ -15,15 +19,14 @@
       "streamSettings": {
         "network": "ws",
         "wsSettings": {
-          "path": "/Telegram/VLess"
+          "path": "Télégram/@MOHAMaaaaal/@VLessVMessTroja"
         }
       }
     }
   ],
   "outbounds": [
     {
-      "protocol": "freedom",
-      "settings": {}
+      "protocol": "freedom"
     }
   ]
 }

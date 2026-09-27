@@ -1,7 +1,7 @@
 FROM ghcr.io/xtls/xray-core:latest
 
+COPY config.json /etc/xray/config.json
+
 EXPOSE 8080
 
-COPY config.json /usr/local/etc/xray/config.json
-
-CMD ["xray", "run", "-config", "/usr/local/etc/xray/config.json"]
+CMD ["run", "-config", "/etc/xray/config.json"]
