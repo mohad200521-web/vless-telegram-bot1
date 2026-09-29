@@ -1,5 +1,6 @@
 import os
 import uuid
+from xray_api import add_vless_user
 from datetime import datetime, timedelta
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
