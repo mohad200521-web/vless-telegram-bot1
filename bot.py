@@ -1,7 +1,8 @@
 import os
 import uuid
-from xray_api import add_vless_user
 from datetime import datetime, timedelta
+
+from xray_api import add_vless_user
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -24,13 +25,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ]
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
     await update.message.reply_text(
         "👋 مرحباً بك\n\n"
         "🤖 بوت إدارة VLESS\n\n"
         "اختر العملية التي تريدها:",
-        reply_markup=reply_markup
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 
@@ -40,11 +39,20 @@ async def create_vless(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [
-            InlineKeyboardButton("📅 يوم واحد", callback_data="days_1"),
-            InlineKeyboardButton("📅 7 أيام", callback_data="days_7"),
+            InlineKeyboardButton(
+                "📅 يوم واحد",
+                callback_data="days_1"
+            ),
+            InlineKeyboardButton(
+                "📅 7 أيام",
+                callback_data="days_7"
+            ),
         ],
         [
-            InlineKeyboardButton("📅 30 يوم", callback_data="days_30"),
+            InlineKeyboardButton(
+                "📅 30 يوم",
+                callback_data="days_30"
+            )
         ]
     ]
 
@@ -67,13 +75,23 @@ async def generate_account(
     user_uuid = str(uuid.uuid4())
     expiry = datetime.now() + timedelta(days=days)
 
+    email = f"tg_{query.from_user.id}_{user_uuid[:8]}"
+
+    if not add_vless_user(user_uuid, email):
+        await query.edit_message_text(
+            "❌ حدث خطأ أثناء إضافة الحساب إلى خادم Xray."
+        )
+        return
+
     await query.edit_message_text(
         "✅ تم إنشاء الحساب التجريبي\n\n"
         f"🆔 UUID:\n"
         f"`{user_uuid}`\n\n"
         f"⏳ المدة: {days} يوم\n"
-        f"📅 الانتهاء: {expiry.strftime('%Y-%m-%d %H:%M')}\n\n"
-        "✅ تم إنشاء الحساب وإضافته إلى خادم Xray."
+        f"📅 الانتهاء: "
+        f"{expiry.strftime('%Y-%m-%d %H:%M')}\n\n"
+        "✅ تم إضافة الحساب إلى خادم Xray.\n"
+        "يمكن استخدامه للاتصال الآن.",
         parse_mode="Markdown"
     )
 
