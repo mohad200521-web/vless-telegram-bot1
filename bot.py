@@ -68,22 +68,19 @@ async def generate_account(
 
     email = f"tg_{query.from_user.id}_{user_uuid[:8]}"
 
-    success = add_vless_user(user_uuid, email)
-
-    if not success:
+    if not add_vless_user(user_uuid, email):
         await query.edit_message_text(
             "❌ حدث خطأ أثناء إضافة الحساب إلى خادم Xray."
         )
         return
 
     await query.edit_message_text(
-        "✅ تم إنشاء حساب VLESS\n\n"
+        "✅ تم إنشاء الحساب\n\n"
         f"🆔 UUID:\n"
         f"`{user_uuid}`\n\n"
         f"⏳ المدة: {days} يوم\n"
-        f"📅 الانتهاء: "
-        f"{expiry.strftime('%Y-%m-%d %H:%M')}\n\n"
-        "✅ تم إضافة الحساب إلى خادم Xray.",
+        f"📅 الانتهاء: {expiry.strftime('%Y-%m-%d %H:%M')}\n\n"
+        "✅ تمت إضافة الحساب إلى خادم Xray.",
         parse_mode="Markdown"
     )
 
