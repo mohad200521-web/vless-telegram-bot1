@@ -26,3 +26,5 @@ steps:
 
 images:
   - 'gcr.io/$PROJECT_ID/vless-telegram-bot1:$COMMIT_SHA'
+options:
+  logging: CLOUD_LOGGING_ONLY
