@@ -73,8 +73,7 @@ async def generate_account(
         f"`{user_uuid}`\n\n"
         f"⏳ المدة: {days} يوم\n"
         f"📅 الانتهاء: {expiry.strftime('%Y-%m-%d %H:%M')}\n\n"
-        "⚠️ هذا حساب تجريبي حاليًا.\n"
-        "لم يتم ربطه بخادم Xray بعد، لذلك لا يمكن استخدامه للاتصال الآن.",
+        "✅ تم إنشاء الحساب وإضافته إلى خادم Xray."
         parse_mode="Markdown"
     )
 
