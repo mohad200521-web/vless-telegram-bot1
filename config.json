@@ -1,8 +1,14 @@
-{
-  "log": {
-    "loglevel": "warning"
-  },
-  "inbounds": [
+"log": {
+  "loglevel": "warning"
+},
+"api": {
+  "tag": "api",
+  "listen": "127.0.0.1:10085",
+  "services": [
+    "HandlerService"
+  ]
+},
+"inbounds": [
     {
       "listen": "0.0.0.0",
       "port": 8080,
