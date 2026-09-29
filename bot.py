@@ -39,20 +39,11 @@ async def create_vless(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [
-            InlineKeyboardButton(
-                "📅 يوم واحد",
-                callback_data="days_1"
-            ),
-            InlineKeyboardButton(
-                "📅 7 أيام",
-                callback_data="days_7"
-            ),
+            InlineKeyboardButton("📅 يوم واحد", callback_data="days_1"),
+            InlineKeyboardButton("📅 7 أيام", callback_data="days_7"),
         ],
         [
-            InlineKeyboardButton(
-                "📅 30 يوم",
-                callback_data="days_30"
-            )
+            InlineKeyboardButton("📅 30 يوم", callback_data="days_30"),
         ]
     ]
 
@@ -77,21 +68,22 @@ async def generate_account(
 
     email = f"tg_{query.from_user.id}_{user_uuid[:8]}"
 
-    if not add_vless_user(user_uuid, email):
+    success = add_vless_user(user_uuid, email)
+
+    if not success:
         await query.edit_message_text(
             "❌ حدث خطأ أثناء إضافة الحساب إلى خادم Xray."
         )
         return
 
     await query.edit_message_text(
-        "✅ تم إنشاء الحساب التجريبي\n\n"
+        "✅ تم إنشاء حساب VLESS\n\n"
         f"🆔 UUID:\n"
         f"`{user_uuid}`\n\n"
         f"⏳ المدة: {days} يوم\n"
         f"📅 الانتهاء: "
         f"{expiry.strftime('%Y-%m-%d %H:%M')}\n\n"
-        "✅ تم إضافة الحساب إلى خادم Xray.\n"
-        "يمكن استخدامه للاتصال الآن.",
+        "✅ تم إضافة الحساب إلى خادم Xray.",
         parse_mode="Markdown"
     )
 
