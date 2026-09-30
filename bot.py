@@ -84,11 +84,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         ],
         [
-            InlineKeyboardButton(
-                "➕ إنشاء VLESS",
-                callback_data="create_vless"
-            )
-        ],
+            
         [
             InlineKeyboardButton(
                 "📊 حالة الخدمة",
