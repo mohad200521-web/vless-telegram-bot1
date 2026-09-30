@@ -3,6 +3,10 @@ name: Run Telegram Bot
 on:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run-bot:
     runs-on: ubuntu-latest
