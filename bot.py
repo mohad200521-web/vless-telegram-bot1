@@ -35,7 +35,6 @@ _._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._.
 
 𝙒𝙚𝙡𝙘𝙤𝙢𝙚 𝙢𝙮 𝙛𝙧𝙞𝙚𝙣𝙙𝙨 , 𝙩𝙝𝙞𝙨 𝙞𝙨 𝙖 𝙂𝙤𝙤𝙜𝙡𝙚𝘾𝙡𝙤𝙪𝙙 𝙘𝙤𝙙𝙚𝙨 𝙜𝙚𝙣𝙚𝙧𝙖𝙩𝙤𝙧
 
-, 𝙮𝙤𝙪 𝙣𝙚𝙚𝙙 𝙩𝙤 𝙨𝙚𝙣𝙙 ( /help ) 𝙘𝙤𝙢𝙢𝙖𝙣𝙙 , 𝙩𝙤 𝙜𝙚𝙩 2 𝙫𝙞𝙙𝙚𝙤𝙨 𝙩𝙝𝙖𝙩 𝙚𝙭𝙥𝙡𝙖𝙞𝙣s 𝙚𝙫𝙚𝙧𝙮𝙩𝙝𝙞𝙣𝙜
 
 𝙏𝙝𝙞𝙨 𝙞𝙨 𝙩𝙝𝙚 𝙡𝙖𝙗𝙤𝙧𝙖𝙩𝙤𝙧𝙮 𝙡𝙞𝙣𝙠 :
 4:30 𝙝𝙤𝙪𝙧𝙨
@@ -80,9 +79,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton(
                 "📎 إرسال رابط المختبر",
-                
-        [
-            
+                callback_data="send_lab"
+            )
+        ],
         [
             InlineKeyboardButton(
                 "📊 حالة الخدمة",
@@ -138,47 +137,11 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["project_id"] = project_id
 
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "➕ إنشاء VLESS",
-                callback_data="create_vless"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "📊 حالة الخدمة",
-                callback_data="status"
-            )
-        ],
-    ]
-
     await update.message.reply_text(
-        "✅ تم استلام الرابط\n\n"
+        "✅ تم استلام رابط المختبر\n\n"
         f"☁️ Project ID:\n{project_id}\n\n"
-        "🔐 تم استخدام Project ID فقط.",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
-
-async def create_vless(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    query = update.callback_query
-    await query.answer()
-
-    project_id = context.user_data.get("project_id")
-
-    if not project_id:
-        await query.edit_message_text(
-            "❌ أرسل رابط المختبر أولًا."
-        )
-        return
-
-    await query.edit_message_text(
-        "⚙️ تجهيز الخدمة...\n\n"
-        f"☁️ Project ID:\n{project_id}\n\n"
-        "⏳ يحتاج النشر الفعلي إلى Google Cloud credentials "
-        "مصرح بها للمشروع."
+        "🔐 تم استخدام Project ID فقط.\n\n"
+        "⚙️ سيتم تجهيز إنشاء VLESS تلقائيًا بعد ربط خادم Xray."
     )
 
 
@@ -199,7 +162,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📊 حالة الخدمة\n\n"
         f"☁️ Project ID:\n{project_id}\n\n"
         "🟡 تم استلام المشروع\n"
-        "⚪ لم يتم النشر الفعلي بعد"
+        "⚪ خادم Xray لم يتم ربطه بعد"
     )
 
 
@@ -217,13 +180,6 @@ def main():
         CallbackQueryHandler(
             send_lab,
             pattern="^send_lab$"
-        )
-    )
-
-    app.add_handler(
-        CallbackQueryHandler(
-            create_vless,
-            pattern="^create_vless$"
         )
     )
 
