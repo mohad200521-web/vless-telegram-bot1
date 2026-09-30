@@ -13,46 +13,49 @@ def add_vless_user(user_uuid: str, email: str) -> bool:
     temp_path = None
 
     try:
+        # قراءة الإعداد الأساسي
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
             config = json.load(f)
 
         found = False
 
+        # نبحث عن VLESS inbound
         for inbound in config.get("inbounds", []):
-            if inbound.get("tag") != INBOUND_TAG:
-                continue
+            if inbound.get("tag") == INBOUND_TAG:
 
-            clients = (
-                inbound
-                .setdefault("settings", {})
-                .setdefault("clients", [])
-            )
+                # نرسل للمستخدم الجديد فقط
+                inbound.setdefault("settings", {})["clients"] = [
+                    {
+                        "id": user_uuid,
+                        "email": email
+                    }
+                ]
 
-            clients.append({
-                "id": user_uuid,
-                "email": email
-            })
-
-            found = True
-            break
+                found = True
+                break
 
         if not found:
+            print("ERROR: VLESS inbound not found")
             return False
 
+        # إنشاء ملف مؤقت لـ Xray API
         with tempfile.NamedTemporaryFile(
             mode="w",
             suffix=".json",
             delete=False,
             encoding="utf-8"
         ) as f:
+
             json.dump(
                 config,
                 f,
                 ensure_ascii=False,
                 indent=2
             )
+
             temp_path = f.name
 
+        # إضافة المستخدم إلى Xray
         result = subprocess.run(
             [
                 XRAY_BIN,
@@ -66,13 +69,23 @@ def add_vless_user(user_uuid: str, email: str) -> bool:
             timeout=15
         )
 
-        print("XRAY STDOUT:", result.stdout)
-        print("XRAY STDERR:", result.stderr)
+        print("XRAY STDOUT:")
+        print(result.stdout)
 
-        return (
-            result.returncode == 0
-            and "Added 1 user" in result.stdout
-        )
+        print("XRAY STDERR:")
+        print(result.stderr)
+
+        # نجاح العملية
+        if result.returncode != 0:
+            return False
+
+        if "Added 1 user" in result.stdout:
+            return True
+
+        if "Added 1 user(s) in total" in result.stdout:
+            return True
+
+        return False
 
     except Exception as e:
         print("XRAY ERROR:", e)
