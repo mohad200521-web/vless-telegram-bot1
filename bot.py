@@ -80,9 +80,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton(
                 "📎 إرسال رابط المختبر",
-                callback_data="send_lab"
-            )
-        ],
+                
         [
             
         [
