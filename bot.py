@@ -1,8 +1,8 @@
-# bot.py
-
 import os
 import re
-from urllib.parse import urlparse, unquote
+import uuid
+from datetime import datetime, timedelta
+from urllib.parse import urlparse, unquote, quote
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -14,9 +14,17 @@ from telegram.ext import (
     filters,
 )
 
+from xray_api import add_vless_user
+
 TOKEN = os.getenv("BOT_TOKEN")
 
 LAB_URL = "https://www.cloudskillsboost.google/focuses/20774?parent=catalog"
+
+PUBLIC_HOST = os.getenv("PUBLIC_HOST")
+WS_PATH = os.getenv(
+    "WS_PATH",
+    "Télégram/@MOHAMaaaaal/@VLessVMessTroja"
+)
 
 START_TEXT = f"""آلُـۜسـۨۚ(✋)ــِۖلُأمٌ ؏ـليۜـ(💜)ـكـۜم وݛحـٍّْـٍّْ⁽😘₎ـٍّْمهہ الًـًٍۖـٍـٍۖ(☝)ٍۖـًٍٍٍّـًٍلۖهًٍۖۂ وبـۗـۗـۗـۗـۗـۗركۧۧــۧۧۧۧۧـۗـۗ(ۗ😇)ـۗـۗاتهۂ
 
@@ -34,12 +42,7 @@ START_TEXT = f"""آلُـۜسـۨۚ(✋)ــِۖلُأمٌ ؏ـليۜـ(💜)ـ�
 _._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
 
 𝙒𝙚𝙡𝙘𝙤𝙢𝙚 𝙢𝙮 𝙛𝙧𝙞𝙚𝙣𝙙𝙨 , 𝙩𝙝𝙞𝙨 𝙞𝙨 𝙖 𝙂𝙤𝙤𝙜𝙡𝙚𝘾𝙡𝙤𝙪𝙙 𝙘𝙤𝙙𝙚𝙨 𝙜𝙚𝙣𝙚𝙧𝙖𝙩𝙤𝙧
-
-
-𝙏𝙝𝙞𝙨 𝙞𝙨 𝙩𝙝𝙚 𝙡𝙖𝙗𝙤𝙧𝙖𝙩𝙤𝙧𝙮 𝙡𝙞𝙣𝙠 :
-4:30 𝙝𝙤𝙪𝙧𝙨
-[] ° {LAB_URL}
-@MOHAMaaaaal"""
+"""
 
 
 def extract_project_id(text: str):
@@ -73,6 +76,23 @@ def is_google_url(text: str):
         return False
 
 
+def make_vless_link(user_uuid: str, days: int):
+    if not PUBLIC_HOST:
+        return None
+
+    encoded_path = quote(WS_PATH, safe="")
+
+    return (
+        f"vless://{user_uuid}@{PUBLIC_HOST}:443"
+        f"?encryption=none"
+        f"&security=tls"
+        f"&type=ws"
+        f"&host={PUBLIC_HOST}"
+        f"&path={encoded_path}"
+        f"#VLESS-{days}DAY"
+    )
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
@@ -101,8 +121,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "🎥 شرح استخدام البوت\n\n"
-        "أرسل رابط Google Skills Boost إلى البوت.\n\n"
-        "⚠️ لا ترسل كلمة مرور أو رمز تسجيل دخول أو token."
+        "1️⃣ أرسل رابط Google Skills Boost.\n"
+        "2️⃣ سيتم استخراج Project ID.\n"
+        "3️⃣ سيتم إنشاء حساب VLESS تجريبي.\n\n"
+        "⚠️ لا ترسل كلمة مرور أو token."
     )
 
 
@@ -138,10 +160,40 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["project_id"] = project_id
 
     await update.message.reply_text(
-        "✅ تم استلام رابط المختبر\n\n"
+        "⏳ جاري إنشاء حساب VLESS..."
+    )
+
+    user_uuid = str(uuid.uuid4())
+
+    email = f"tg_{update.effective_user.id}_{user_uuid[:8]}"
+
+    if not add_vless_user(user_uuid, email):
+        await update.message.reply_text(
+            "❌ فشل إضافة الحساب إلى خادم Xray."
+        )
+        return
+
+    days = 1
+    expiry = datetime.now() + timedelta(days=days)
+
+    vless_link = make_vless_link(user_uuid, days)
+
+    if not vless_link:
+        await update.message.reply_text(
+            "⚠️ تم إنشاء الحساب، لكن PUBLIC_HOST غير مضبوط."
+        )
+        return
+
+    await update.message.reply_text(
+        "✅ تم إنشاء حساب VLESS\n\n"
         f"☁️ Project ID:\n{project_id}\n\n"
-        "🔐 تم استخدام Project ID فقط.\n\n"
-        "⚙️ سيتم تجهيز إنشاء VLESS تلقائيًا بعد ربط خادم Xray."
+        f"🆔 UUID:\n`{user_uuid}`\n\n"
+        f"⏳ المدة: {days} يوم\n"
+        f"📅 الانتهاء: {expiry.strftime('%Y-%m-%d %H:%M')}\n\n"
+        "🔗 رابط VLESS:\n"
+        f"`{vless_link}`",
+        parse_mode="Markdown",
+        disable_web_page_preview=True,
     )
 
 
@@ -161,8 +213,9 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         "📊 حالة الخدمة\n\n"
         f"☁️ Project ID:\n{project_id}\n\n"
-        "🟡 تم استلام المشروع\n"
-        "⚪ خادم Xray لم يتم ربطه بعد"
+        "🟢 البوت يعمل\n"
+        "🟢 Xray يعمل\n"
+        "🟢 إنشاء الحسابات مفعّل"
     )
 
 
