@@ -13,9 +13,11 @@ def add_vless_user(user_uuid: str, email: str) -> bool:
     temp_path = None
 
     try:
+        # قراءة إعداد Xray
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
             config = json.load(f)
 
+        # البحث عن VLESS inbound
         target = None
 
         for inbound in config.get("inbounds", []):
@@ -27,23 +29,47 @@ def add_vless_user(user_uuid: str, email: str) -> bool:
             print("ERROR: VLESS inbound not found")
             return False
 
-        clients = target.setdefault("settings", {}).setdefault("clients", [])
+        # الحصول على قائمة المستخدمين
+        clients = (
+            target
+            .setdefault("settings", {})
+            .setdefault("clients", [])
+        )
 
+        # منع تكرار UUID
+        for client in clients:
+            if client.get("id") == user_uuid:
+                print("ERROR: UUID already exists")
+                return False
+
+        # إضافة المستخدم الجديد
         clients.append({
             "id": user_uuid,
             "email": email
         })
 
+        # مهم:
+        # إرسال الـ inbound فقط وليس config.json بالكامل
+        payload = {
+            "inbounds": [target]
+        }
+
+        # إنشاء ملف مؤقت
         with tempfile.NamedTemporaryFile(
             mode="w",
             suffix=".json",
             delete=False,
             encoding="utf-8"
         ) as f:
-            json.dump(config, f, ensure_ascii=False, indent=2)
+            json.dump(
+                payload,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
             temp_path = f.name
 
-        # إزالة الـ inbound القديم
+        # حذف الـ inbound القديم من Xray
         remove_result = subprocess.run(
             [
                 XRAY_BIN,
@@ -55,14 +81,18 @@ def add_vless_user(user_uuid: str, email: str) -> bool:
             ],
             capture_output=True,
             text=True,
-            timeout=15
+            timeout=20
         )
 
         print("XRAY REMOVE:")
         print(remove_result.stdout)
         print(remove_result.stderr)
 
-        # إعادة إضافة الـ inbound بالتكوين الجديد
+        if remove_result.returncode != 0:
+            print("ERROR: Failed to remove old inbound")
+            return False
+
+        # إضافة الـ inbound الجديد
         add_result = subprocess.run(
             [
                 XRAY_BIN,
@@ -74,14 +104,19 @@ def add_vless_user(user_uuid: str, email: str) -> bool:
             ],
             capture_output=True,
             text=True,
-            timeout=15
+            timeout=20
         )
 
         print("XRAY ADD:")
         print(add_result.stdout)
         print(add_result.stderr)
 
-        return add_result.returncode == 0
+        if add_result.returncode != 0:
+            print("ERROR: Failed to add new inbound")
+            return False
+
+        print("SUCCESS: VLESS user added")
+        return True
 
     except Exception as e:
         print("XRAY ERROR:", e)
