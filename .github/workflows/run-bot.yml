@@ -24,54 +24,64 @@ jobs:
 
       - name: Install Xray
         run: |
-          mkdir -p /usr/local/bin/xray
+          mkdir -p "$HOME/xray"
           curl -L \
             https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip \
             -o /tmp/xray.zip
-          unzip -o /tmp/xray.zip -d /usr/local/bin/xray
-          chmod +x /usr/local/bin/xray/xray
 
-          mkdir -p /etc/xray
-          cp config.json /etc/xray/config.json
+          unzip -o /tmp/xray.zip -d "$HOME/xray"
+          chmod +x "$HOME/xray/xray"
 
-          /usr/local/bin/xray/xray version
+          mkdir -p "$HOME/xray/config"
+          cp config.json "$HOME/xray/config/config.json"
+
+          "$HOME/xray/xray" version
 
       - name: Test Xray config
         run: |
-          /usr/local/bin/xray/xray run -test \
-            -config /etc/xray/config.json
+          "$HOME/xray/xray" run -test \
+            -config "$HOME/xray/config/config.json"
 
       - name: Start Xray
         run: |
-          nohup /usr/local/bin/xray/xray run \
-            -config /etc/xray/config.json \
+          nohup "$HOME/xray/xray" run \
+            -config "$HOME/xray/config/config.json" \
             > xray.log 2>&1 &
 
-          sleep 3
+          sleep 5
 
+          echo "===== XRAY LOG ====="
           cat xray.log
+
+      - name: Test Xray API
+        run: |
+          "$HOME/xray/xray" api stats \
+            --server 127.0.0.1:10085 || true
 
       - name: Install Cloudflare Tunnel
         run: |
           curl -L \
             https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-            -o /usr/local/bin/cloudflared
+            -o "$HOME/cloudflared"
 
-          chmod +x /usr/local/bin/cloudflared
+          chmod +x "$HOME/cloudflared"
 
-          cloudflared version
+          "$HOME/cloudflared" version
 
       - name: Start Cloudflare Tunnel
         run: |
-          nohup cloudflared tunnel \
+          nohup "$HOME/cloudflared" tunnel \
             --url http://127.0.0.1:8080 \
             --no-autoupdate \
             > cloudflared.log 2>&1 &
 
+          echo "Waiting for Cloudflare Tunnel..."
+
           for i in {1..30}; do
             sleep 2
 
-            HOST=$(grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' cloudflared.log | head -1)
+            HOST=$(grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' \
+              cloudflared.log | head -1 || true)
 
             if [ -n "$HOST" ]; then
               echo "PUBLIC_HOST=${HOST#https://}" >> "$GITHUB_ENV"
@@ -82,22 +92,21 @@ jobs:
 
           if [ -z "$HOST" ]; then
             echo "Cloudflare tunnel failed"
+            echo "===== CLOUDFLARE LOG ====="
             cat cloudflared.log
             exit 1
           fi
-
-      - name: Show services
-        run: |
-          echo "PUBLIC_HOST=$PUBLIC_HOST"
-
-          echo "Testing Xray API..."
-          /usr/local/bin/xray/xray api stats \
-            --server 127.0.0.1:10085 || true
 
       - name: Start Telegram Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           PUBLIC_HOST: ${{ env.PUBLIC_HOST }}
           WS_PATH: "Télégram/@MOHAMaaaaal/@VLessVMessTroja"
+          XRAY_BIN: ${{ env.HOME }}/xray/xray
+          XRAY_API: "127.0.0.1:10085"
+          CONFIG_PATH: ${{ env.HOME }}/xray/config/config.json
+          INBOUND_TAG: "vless-in"
         run: |
+          echo "Starting Telegram Bot..."
+          echo "PUBLIC_HOST=$PUBLIC_HOST"
           python bot.py
