@@ -17,13 +17,87 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install Xray
+        run: |
+          mkdir -p /usr/local/bin/xray
+          curl -L \
+            https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip \
+            -o /tmp/xray.zip
+          unzip -o /tmp/xray.zip -d /usr/local/bin/xray
+          chmod +x /usr/local/bin/xray/xray
+
+          mkdir -p /etc/xray
+          cp config.json /etc/xray/config.json
+
+          /usr/local/bin/xray/xray version
+
+      - name: Test Xray config
+        run: |
+          /usr/local/bin/xray/xray run -test \
+            -config /etc/xray/config.json
+
+      - name: Start Xray
+        run: |
+          nohup /usr/local/bin/xray/xray run \
+            -config /etc/xray/config.json \
+            > xray.log 2>&1 &
+
+          sleep 3
+
+          cat xray.log
+
+      - name: Install Cloudflare Tunnel
+        run: |
+          curl -L \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -o /usr/local/bin/cloudflared
+
+          chmod +x /usr/local/bin/cloudflared
+
+          cloudflared version
+
+      - name: Start Cloudflare Tunnel
+        run: |
+          nohup cloudflared tunnel \
+            --url http://127.0.0.1:8080 \
+            --no-autoupdate \
+            > cloudflared.log 2>&1 &
+
+          for i in {1..30}; do
+            sleep 2
+
+            HOST=$(grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' cloudflared.log | head -1)
+
+            if [ -n "$HOST" ]; then
+              echo "PUBLIC_HOST=${HOST#https://}" >> "$GITHUB_ENV"
+              echo "Cloudflare Host: ${HOST#https://}"
+              break
+            fi
+          done
+
+          if [ -z "$HOST" ]; then
+            echo "Cloudflare tunnel failed"
+            cat cloudflared.log
+            exit 1
+          fi
+
+      - name: Show services
+        run: |
+          echo "PUBLIC_HOST=$PUBLIC_HOST"
+
+          echo "Testing Xray API..."
+          /usr/local/bin/xray/xray api stats \
+            --server 127.0.0.1:10085 || true
+
       - name: Start Telegram Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          PUBLIC_HOST: ${{ env.PUBLIC_HOST }}
+          WS_PATH: "Télégram/@MOHAMaaaaal/@VLessVMessTroja"
         run: |
           python bot.py
