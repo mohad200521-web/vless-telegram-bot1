@@ -16,15 +16,18 @@ from telegram.ext import (
 
 from xray_api import add_vless_user
 
+
 TOKEN = os.getenv("BOT_TOKEN")
 
 LAB_URL = "https://www.cloudskillsboost.google/focuses/20774?parent=catalog"
 
 PUBLIC_HOST = os.getenv("PUBLIC_HOST")
+
 WS_PATH = os.getenv(
     "WS_PATH",
     "Télégram/@MOHAMaaaaal/@VLessVMessTroja"
 )
+
 
 START_TEXT = f"""آلُـۜسـۨۚ(✋)ــِۖلُأمٌ ؏ـليۜـ(💜)ـكـۜم وݛحـٍّْـٍّْ⁽😘₎ـٍّْمهہ الًـًٍۖـٍـٍۖ(☝)ٍۖـًٍٍٍّـًٍلۖهًٍۖۂ وبـۗـۗـۗـۗـۗـۗركۧۧــۧۧۧۧۧـۗـۗ(ۗ😇)ـۗـۗاتهۂ
 
@@ -99,13 +102,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [
             InlineKeyboardButton(
                 "📎 إرسال رابط المختبر",
-                callback_data="send_lab"
+                callback_data="send_lab",
             )
         ],
         [
             InlineKeyboardButton(
                 "📊 حالة الخدمة",
-                callback_data="status"
+                callback_data="status",
             )
         ],
     ]
@@ -189,71 +192,4 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"☁️ Project ID:\n{project_id}\n\n"
         f"🆔 UUID:\n`{user_uuid}`\n\n"
         f"⏳ المدة: {days} يوم\n"
-        f"📅 الانتهاء: {expiry.strftime('%Y-%m-%d %H:%M')}\n\n"
-        "🔗 رابط VLESS:\n"
-        f"`{vless_link}`",
-        parse_mode="Markdown",
-        disable_web_page_preview=True,
-    )
-
-
-async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    query = update.callback_query
-    await query.answer()
-
-    project_id = context.user_data.get("project_id")
-
-    if not project_id:
-        await query.edit_message_text(
-            "📊 لا يوجد مشروع مرتبط."
-        )
-        return
-
-    await query.edit_message_text(
-        "📊 حالة الخدمة\n\n"
-        f"☁️ Project ID:\n{project_id}\n\n"
-        "🟢 البوت يعمل\n"
-        "🟢 Xray يعمل\n"
-        "🟢 إنشاء الحسابات مفعّل"
-    )
-
-
-def main():
-
-    if not TOKEN:
-        raise RuntimeError("BOT_TOKEN غير موجود")
-
-    app = Application.builder().token(TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_command))
-
-    app.add_handler(
-        CallbackQueryHandler(
-            send_lab,
-            pattern="^send_lab$"
-        )
-    )
-
-    app.add_handler(
-        CallbackQueryHandler(
-            status,
-            pattern="^status$"
-        )
-    )
-
-    app.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            receive_link
-        )
-    )
-
-    print("Bot is running...")
-
-    app.run_polling()
-
-
-if __name__ == "__main__":
-    main()
+        f"📅 الان
