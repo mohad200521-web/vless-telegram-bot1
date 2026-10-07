@@ -1,103 +1,4 @@
-name: Run Telegram Bot
-
-on:
-  workflow_dispatch:
-
-jobs:
-  run-bot:
-    runs-on: ubuntu-latest
-    timeout-minutes: 350
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Install Xray
-        run: |
-          mkdir -p "$HOME/xray"
-          curl -L \
-            https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip \
-            -o /tmp/xray.zip
-
-          unzip -o /tmp/xray.zip -d "$HOME/xray"
-          chmod +x "$HOME/xray/xray"
-
-          mkdir -p "$HOME/xray/config"
-          cp config.json "$HOME/xray/config/config.json"
-
-          "$HOME/xray/xray" version
-
-      - name: Test Xray config
-        run: |
-          "$HOME/xray/xray" run -test \
-            -config "$HOME/xray/config/config.json"
-
-      - name: Start Xray
-        run: |
-          nohup "$HOME/xray/xray" run \
-            -config "$HOME/xray/config/config.json" \
-            > xray.log 2>&1 &
-
-          sleep 5
-
-          echo "===== XRAY LOG ====="
-          cat xray.log
-
-      - name: Test Xray API
-        run: |
-          "$HOME/xray/xray" api stats \
-            --server 127.0.0.1:10085 || true
-
-      - name: Install Cloudflare Tunnel
-        run: |
-          curl -L \
-            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-            -o "$HOME/cloudflared"
-
-          chmod +x "$HOME/cloudflared"
-
-          "$HOME/cloudflared" version
-
-      - name: Start Cloudflare Tunnel
-        run: |
-          nohup "$HOME/cloudflared" tunnel \
-            --url http://127.0.0.1:8080 \
-            --no-autoupdate \
-            > cloudflared.log 2>&1 &
-
-          echo "Waiting for Cloudflare Tunnel..."
-
-          for i in {1..30}; do
-            sleep 2
-
-            HOST=$(grep -oE 'https://[a-zA-Z0-9.-]+\.trycloudflare\.com' \
-              cloudflared.log | head -1 || true)
-
-            if [ -n "$HOST" ]; then
-              echo "PUBLIC_HOST=${HOST#https://}" >> "$GITHUB_ENV"
-              echo "Cloudflare Host: ${HOST#https://}"
-              break
-            fi
-          done
-
-          if [ -z "$HOST" ]; then
-            echo "Cloudflare tunnel failed"
-            echo "===== CLOUDFLARE LOG ====="
-            cat cloudflared.log
-            exit 1
-          fi
-
-      - name: Start Telegram Bot
+- name: Start Telegram Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           PUBLIC_HOST: ${{ env.PUBLIC_HOST }}
@@ -107,6 +8,11 @@ jobs:
           CONFIG_PATH: ${{ env.HOME }}/xray/config/config.json
           INBOUND_TAG: "vless-in"
         run: |
-          echo "Starting Telegram Bot..."
-          echo "PUBLIC_HOST=$PUBLIC_HOST"
+          echo "===== XRAY LOG ====="
+          cat xray.log
+
+          echo "===== CLOUDFLARE LOG ====="
+          cat cloudflared.log
+
+          echo "===== START BOT ====="
           python bot.py
