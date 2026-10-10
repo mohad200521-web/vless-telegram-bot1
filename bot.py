@@ -31,11 +31,11 @@ WS_PATH = os.getenv(
 
 START_TEXT = f"""آلُـۜسـۨۚ(✋)ــِۖلُأمٌ ؏ـليۜـ(💜)ـكـۜم وݛحـٍّْـٍّْ⁽😘₎ـٍّْمهہ الًـًٍۖـٍـٍۖ(☝)ٍۖـًٍٍٍّـًٍلۖهًٍۖۂ وبـۗـۗـۗـۗـۗـۗركۧۧــۧۧۧۧۧـۗـۗ(ۗ😇)ـۗـۗاتهۂ
 
-ملاحظة : رابط المختبر تحتاجه لهذا يا اما تحفظه او ترسل /start
+ملاحظة: رابط المختبر تحتاجه، إما أن تحفظه أو ترسل /start.
 
-ه‌‌َـَْـُذآ رابط المختبر :
-4:30 ساعات
-[] ° {LAB_URL}
+ه‌‌َـَْـُذآ رابط المختبر:
+المدة: 4:30 ساعات
+{LAB_URL}
 
 ﷽
 ۝ إِنَّ اللَّهَ وَمَلائِكَتَهُ يُصَلُّونَ عَلَى
@@ -44,7 +44,7 @@ START_TEXT = f"""آلُـۜسـۨۚ(✋)ــِۖلُأمٌ ؏ـليۜـ(💜)ـ�
 
 _._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
 
-𝙒𝙚𝙡𝙘𝙤𝙢𝙚 𝙢𝙮 𝙛𝙧𝙞𝙚𝙣𝙙𝙨 , 𝙩𝙝𝙞𝙨 𝙞𝙨 𝙖 𝙂𝙤𝙤𝙜𝙡𝙚𝘾𝙡𝙤𝙪𝙙 𝙘𝙤𝙙𝙚𝙨 𝙜𝙚𝙣𝙚𝙧𝙖𝙩𝙤𝙧
+𝙒𝙚𝙡𝙘𝙤𝙢𝙚 𝙢𝙮 𝙛𝙧𝙞𝙚𝙣𝙙𝙨, 𝙩𝙝𝙞𝙨 𝙞𝙨 𝙖 𝙂𝙤𝙤𝙜𝙡𝙚𝘾𝙡𝙤𝙪𝙙 𝙘𝙤𝙙𝙚𝙨 𝙜𝙚𝙣𝙚𝙧𝙖𝙩𝙤𝙧
 """
 
 
@@ -65,16 +65,19 @@ def extract_project_id(text: str):
 
 def is_google_url(text: str):
     try:
-        host = urlparse(text).netloc.lower()
+        parsed = urlparse(text)
+        host = (parsed.hostname or "").lower()
 
-        return host in {
-            "skills.google",
-            "www.skills.google",
-            "cloudskillsboost.google",
-            "www.cloudskillsboost.google",
-            "console.cloud.google.com",
-        }
-
+        return (
+            parsed.scheme in ("https", "http")
+            and host in {
+                "skills.google",
+                "www.skills.google",
+                "cloudskillsboost.google",
+                "www.cloudskillsboost.google",
+                "console.cloud.google.com",
+            }
+        )
     except Exception:
         return False
 
@@ -83,21 +86,21 @@ def make_vless_link(user_uuid: str, days: int):
     if not PUBLIC_HOST:
         return None
 
-    encoded_path = quote(WS_PATH, safe="")
+    host = PUBLIC_HOST.strip().removeprefix("https://").removeprefix("http://").rstrip("/")
+    encoded_path = quote("/" + WS_PATH.strip("/"), safe="")
 
     return (
-        f"vless://{user_uuid}@{PUBLIC_HOST}:443"
+        f"vless://{user_uuid}@{host}:443"
         f"?encryption=none"
         f"&security=tls"
         f"&type=ws"
-        f"&host={PUBLIC_HOST}"
+        f"&host={host}"
         f"&path={encoded_path}"
         f"#VLESS-{days}DAY"
     )
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     keyboard = [
         [
             InlineKeyboardButton(
@@ -113,7 +116,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
     ]
 
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         START_TEXT,
         reply_markup=InlineKeyboardMarkup(keyboard),
         disable_web_page_preview=True,
@@ -121,33 +124,31 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         "🎥 شرح استخدام البوت\n\n"
         "1️⃣ أرسل رابط Google Skills Boost.\n"
-        "2️⃣ سيتم استخراج Project ID.\n"
-        "3️⃣ سيتم إنشاء حساب VLESS تجريبي.\n\n"
-        "⚠️ لا ترسل كلمة مرور أو token."
+        "2️⃣ سيحاول البوت استخراج Project ID.\n"
+        "3️⃣ إذا كان الرابط مناسبًا والخادم مهيأ، سيحاول إنشاء حساب VLESS.\n\n"
+        "⚠️ لا ترسل كلمة مرور أو توكن."
     )
 
 
 async def send_lab(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     query = update.callback_query
     await query.answer()
 
     await query.edit_message_text(
         "📎 أرسل رابط Google Skills Boost.\n\n"
-        "سيتم استخراج Project ID فقط."
+        "سيحاول البوت استخراج Project ID من الرابط."
     )
 
 
 async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    text = update.message.text.strip()
+    message = update.effective_message
+    text = (message.text or "").strip()
 
     if not is_google_url(text):
-        await update.message.reply_text(
+        await message.reply_text(
             "❌ أرسل رابط Google Skills Boost أو Google Cloud صالحًا."
         )
         return
@@ -155,24 +156,30 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     project_id = extract_project_id(text)
 
     if not project_id:
-        await update.message.reply_text(
-            "⚠️ لم أجد Project ID في الرابط."
+        await message.reply_text(
+            "⚠️ لم أجد Project ID بصيغة qwiklabs- في الرابط."
         )
         return
 
     context.user_data["project_id"] = project_id
 
-    await update.message.reply_text(
-        "⏳ جاري إنشاء حساب VLESS..."
-    )
+    await message.reply_text("⏳ جاري محاولة إنشاء حساب VLESS...")
 
     user_uuid = str(uuid.uuid4())
-
     email = f"tg_{update.effective_user.id}_{user_uuid[:8]}"
 
-    if not add_vless_user(user_uuid, email):
-        await update.message.reply_text(
-            "❌ فشل إضافة الحساب إلى خادم Xray."
+    try:
+        result = add_vless_user(user_uuid, email)
+    except Exception:
+        await message.reply_text(
+            "❌ حدث خطأ أثناء الاتصال بخادم Xray. "
+            "تحقق من إعدادات الخادم وسجلات التشغيل."
+        )
+        return
+
+    if not result:
+        await message.reply_text(
+            "❌ لم يتمكن البوت من إضافة الحساب إلى خادم Xray."
         )
         return
 
@@ -182,14 +189,74 @@ async def receive_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     vless_link = make_vless_link(user_uuid, days)
 
     if not vless_link:
-        await update.message.reply_text(
-            "⚠️ تم إنشاء الحساب، لكن PUBLIC_HOST غير مضبوط."
+        await message.reply_text(
+            "⚠️ تمت إضافة الحساب، لكن PUBLIC_HOST غير مضبوط. "
+            "اضبط عنوان الخادم قبل إنشاء رابط الاتصال."
         )
         return
 
-    await update.message.reply_text(
-        "✅ تم إنشاء حساب VLESS\n\n"
+    await message.reply_text(
+        "✅ تمت إضافة حساب VLESS إلى Xray.\n\n"
         f"☁️ Project ID:\n{project_id}\n\n"
-        f"🆔 UUID:\n`{user_uuid}`\n\n"
-        f"⏳ المدة: {days} يوم\n"
-        f"📅 الان
+        f"🆔 UUID:\n{user_uuid}\n\n"
+        f"⏳ المدة المعروضة: {days} يوم\n"
+        f"📅 الوقت المحسوب للانتهاء: "
+        f"{expiry.strftime('%Y-%m-%d %H:%M')}\n\n"
+        "رابط الاتصال:\n"
+        f"{vless_link}",
+        disable_web_page_preview=True,
+    )
+
+
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+
+    if query:
+        await query.answer()
+        await query.edit_message_text(
+            "📊 البوت متصل بتيليجرام.\n"
+            "هذه الرسالة لا تؤكد أن اتصال Xray يعمل."
+        )
+    else:
+        await update.effective_message.reply_text(
+            "📊 البوت متصل بتيليجرام.\n"
+            "هذه الرسالة لا تؤكد أن اتصال Xray يعمل."
+        )
+
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data.clear()
+    await update.effective_message.reply_text("✅ تم إلغاء العملية.")
+
+
+def main():
+    if not TOKEN:
+        raise RuntimeError("متغير BOT_TOKEN غير مضبوط.")
+
+    app = Application.builder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("cancel", cancel))
+    app.add_handler(CommandHandler("status", status))
+
+    app.add_handler(
+        CallbackQueryHandler(send_lab, pattern="^send_lab$")
+    )
+    app.add_handler(
+        CallbackQueryHandler(status, pattern="^status$")
+    )
+
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            receive_link,
+        )
+    )
+
+    print("Telegram bot is starting...")
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
