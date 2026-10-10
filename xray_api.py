@@ -3,7 +3,7 @@ import subprocess
 
 XRAY_BIN = os.getenv(
     "XRAY_BIN",
-    os.path.expanduser("~/xray/xray")
+    "/usr/local/bin/xray/xray"
 )
 
 XRAY_API = os.getenv(
@@ -19,67 +19,32 @@ INBOUND_TAG = os.getenv(
 
 def add_vless_user(user_uuid: str, email: str) -> bool:
     try:
-        print("===== XRAY SETTINGS =====")
-        print("XRAY BIN:", XRAY_BIN)
-        print("XRAY API:", XRAY_API)
-        print("INBOUND TAG:", INBOUND_TAG)
-
-        # التأكد من وجود Xray
         if not os.path.isfile(XRAY_BIN):
-            print("ERROR: Xray binary not found")
+            print(f"ERROR: Xray binary not found: {XRAY_BIN}")
             return False
 
-        # عرض طريقة أمر إضافة المستخدم في نسخة Xray الموجودة
-        help_result = subprocess.run(
-            [
-                XRAY_BIN,
-                "help",
-                "api",
-                "adi"
-            ],
+        # تحقق من أن Xray يعمل
+        check = subprocess.run(
+            [XRAY_BIN, "version"],
             capture_output=True,
             text=True,
             timeout=10
         )
 
-        print("===== XRAY API ADI HELP =====")
-        print(help_result.stdout)
-        print(help_result.stderr)
-
-        # إضافة المستخدم عبر Xray API
-        result = subprocess.run(
-            [
-                XRAY_BIN,
-                "api",
-                "adi",
-                "--server",
-                XRAY_API,
-                "--inbound-tag",
-                INBOUND_TAG,
-                "--id",
-                user_uuid,
-                "--email",
-                email
-            ],
-            capture_output=True,
-            text=True,
-            timeout=20
-        )
-
-        print("===== XRAY API RESULT =====")
-        print("RETURN CODE:", result.returncode)
-        print("STDOUT:")
-        print(result.stdout)
-        print("STDERR:")
-        print(result.stderr)
-
-        if result.returncode != 0:
-            print("ERROR: Failed to add VLESS user")
+        if check.returncode != 0:
+            print("ERROR: Xray version check failed")
+            print(check.stderr)
             return False
 
-        print("SUCCESS: VLESS user added")
-        return True
+        # لا نحاول إضافة المستخدم بأمر غير مدعوم.
+        # يلزم إعداد API في config.json واستخدام gRPC
+        # عبر HandlerService.AddUser.
+        print("ERROR: Xray gRPC API configuration is required.")
+        print(f"Expected API endpoint: {XRAY_API}")
+        print(f"Expected inbound tag: {INBOUND_TAG}")
+        print(f"Requested user: {email}")
+        return False
 
-    except Exception as e:
-        print("XRAY ERROR:", repr(e))
+    except Exception as exc:
+        print("XRAY ERROR:", repr(exc))
         return False
