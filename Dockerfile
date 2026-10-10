@@ -1,11 +1,12 @@
-FROM python:3.12
+FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y \
     curl \
     unzip \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -L https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip \
+RUN curl -fsSL https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip \
     -o /tmp/xray.zip \
     && mkdir -p /usr/local/bin/xray \
     && unzip /tmp/xray.zip -d /usr/local/bin/xray \
@@ -25,4 +26,4 @@ COPY config.json /etc/xray/config.json
 
 EXPOSE 8080
 
-CMD ["/bin/sh", "-c", "/usr/local/bin/xray/xray run -config /etc/xray/config.json & python bot.py"]
+CMD ["/bin/sh", "-c", "/usr/local/bin/xray/xray run -config /etc/xray/config.json & exec python bot.py"]
