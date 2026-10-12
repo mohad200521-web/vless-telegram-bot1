@@ -1,4 +1,3 @@
-
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -14,15 +13,8 @@ RUN curl -fsSL \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY bot.py .
 COPY config.json /etc/xray/config.json
-COPY start.sh /app/start.sh
-
-RUN chmod +x /app/start.sh
 
 EXPOSE 8080
 
-CMD ["/app/start.sh"]
+CMD ["/usr/local/bin/xray", "run", "-config", "/etc/xray/config.json"]
