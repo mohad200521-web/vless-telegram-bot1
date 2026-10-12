@@ -1,7 +1,5 @@
 FROM ghcr.io/xtls/xray-core:latest
 
-RUN mkdir -p /etc/xray
-
 COPY config.json /etc/xray/config.json
 
 EXPOSE 8080
