@@ -24,4 +24,4 @@ uses: actions/checkout@v4
     with:
       context: .
       push: true
-      tags: ajndjd2/mohamad-vip1:latest
+      tags: nawarqarnout2005/mohamad:latest
