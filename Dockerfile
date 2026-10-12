@@ -11,6 +11,8 @@ RUN curl -fsSL \
     && chmod +x /usr/local/bin/xray \
     && rm /tmp/xray.zip
 
+RUN mkdir -p /etc/xray
+
 WORKDIR /app
 
 COPY config.json /etc/xray/config.json
