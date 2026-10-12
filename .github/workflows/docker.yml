@@ -21,4 +21,4 @@ steps:
     with:
       context: .
       push: true
-      tags: nawarqarnout2005/mohamad:latest
+      tags: mohamad2005/mohamad-vip1:latest
